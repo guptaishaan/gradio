@@ -101,7 +101,21 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point cloud data: if all meshes have no face indices
+				// (e.g. an OBJ file with only vertex lines and no "f" face lines),
+				// fall back to point cloud rendering so the data is visible.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				const isPointCloudData =
+					meshes.length > 0 &&
+					meshes.every((m) => {
+						const indices = m.getIndices();
+						return !indices || indices.length === 0;
+					});
+				if (isPointCloudData) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();
