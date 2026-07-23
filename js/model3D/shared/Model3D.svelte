@@ -48,7 +48,12 @@
 
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
+			// .ply files in point_cloud display_mode should use the BabylonJS loader
+			// (Canvas3D) so that regular xyz+rgb PLY point clouds render correctly.
+			// Only route to Canvas3DGS (gsplat) for Gaussian Splat formats.
+			use_3dgs =
+				value.path.endsWith(".splat") ||
+				(value.path.endsWith(".ply") && display_mode !== "point_cloud");
 			if (use_3dgs) {
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
