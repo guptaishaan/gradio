@@ -74,6 +74,16 @@
 		viewerDetails.scene.forceWireframe = wireframe;
 	}
 
+	function hasNoFaces(): boolean {
+		if (!viewerDetails) return false;
+		const meshes = viewerDetails.scene.meshes;
+		let totalIndices = 0;
+		for (const mesh of meshes) {
+			totalIndices += mesh.getTotalIndices();
+		}
+		return totalIndices === 0;
+	}
+
 	async function load_model(url: string | undefined): Promise<void> {
 		const currentViewer = viewer;
 		if (!currentViewer) return;
@@ -100,6 +110,9 @@
 				setRenderingMode(true, false);
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
+			} else if (hasNoFaces()) {
+				// Point cloud data (no face indices) — render as points automatically
+				setRenderingMode(true, false);
 			} else {
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}

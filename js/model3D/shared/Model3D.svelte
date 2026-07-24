@@ -46,14 +46,40 @@
 		return module.default;
 	}
 
+	async function is3DGS_PLY(url: string): Promise<boolean> {
+		try {
+			const res = await fetch(url, { headers: { Range: "bytes=0-2048" } });
+			const text = await res.text();
+			// 3D Gaussian Splatting PLY files contain these properties in their header
+			return text.includes("f_dc_0") || text.includes("scale_0");
+		} catch {
+			return false;
+		}
+	}
+
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
-			if (use_3dgs) {
+			if (value.path.endsWith(".splat")) {
+				use_3dgs = true;
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
 				});
+			} else if (value.path.endsWith(".ply")) {
+				const resolvedUrl = value.url ?? value.path;
+				is3DGS_PLY(resolvedUrl).then((gs) => {
+					use_3dgs = gs;
+					if (gs) {
+						loadCanvas3DGS().then((component) => {
+							Canvas3DGSComponent = component;
+						});
+					} else {
+						loadCanvas3D().then((component) => {
+							Canvas3DComponent = component;
+						});
+					}
+				});
 			} else {
+				use_3dgs = false;
 				loadCanvas3D().then((component) => {
 					Canvas3DComponent = component;
 				});
