@@ -84,6 +84,9 @@
 					pluginOptions: {
 						obj: {
 							importVertexColors: true
+						},
+						ply: {
+							importVertexColors: true
 						}
 					}
 				});
@@ -101,7 +104,20 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point cloud data: if all meshes have no indices (no face data),
+				// fall back to point cloud rendering so OBJ/PLY vertex-only data is visible.
+				const hasNoFaces =
+					viewerDetails != null &&
+					viewerDetails.scene.meshes.length > 0 &&
+					viewerDetails.scene.meshes.every(
+						(mesh) =>
+							mesh.getTotalIndices != null && mesh.getTotalIndices() === 0
+					);
+				if (hasNoFaces) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();
