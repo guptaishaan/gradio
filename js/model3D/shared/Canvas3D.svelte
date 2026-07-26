@@ -101,7 +101,18 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point-cloud-only geometry (no face indices).
+				// Happens with .obj files that have only vertices and no "f" lines,
+				// or .ply files that contain only x/y/z (+colour) data.
+				const hasFaces =
+					viewerDetails?.scene.meshes.some(
+						(mesh) => (mesh.getTotalIndices?.() ?? 0) > 0
+					) ?? true;
+				if (!hasFaces) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();
