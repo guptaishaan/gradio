@@ -7,6 +7,7 @@
 	import type { I18nFormatter } from "@gradio/utils";
 	import type Canvas3DGS from "./Canvas3DGS.svelte";
 	import type Canvas3D from "./Canvas3D.svelte";
+	import { detect_use_3dgs } from "./detect_3dgs";
 
 	let {
 		value = $bindable(),
@@ -69,16 +70,18 @@
 
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
-			if (use_3dgs) {
-				loadCanvas3DGS().then((component) => {
-					Canvas3DGSComponent = component;
-				});
-			} else {
-				loadCanvas3D().then((component) => {
-					Canvas3DComponent = component;
-				});
-			}
+			detect_use_3dgs(value).then((is3dgs) => {
+				use_3dgs = is3dgs;
+				if (use_3dgs) {
+					loadCanvas3DGS().then((component) => {
+						Canvas3DGSComponent = component;
+					});
+				} else {
+					loadCanvas3D().then((component) => {
+						Canvas3DComponent = component;
+					});
+				}
+			});
 		}
 	});
 

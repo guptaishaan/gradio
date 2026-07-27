@@ -96,9 +96,18 @@
 
 			if (!mounted || currentViewer !== viewer) return;
 
-			if (display_mode === "point_cloud") {
+			// PLY files routed here are standard point clouds (not Gaussian
+			// Splats).  When no explicit display_mode is set, force point
+			// cloud rendering so the vertices are always visible even when
+			// the mesh has no face data.
+			const effective_display_mode =
+				display_mode === "solid" && url.endsWith(".ply")
+					? "point_cloud"
+					: display_mode;
+
+			if (effective_display_mode === "point_cloud") {
 				setRenderingMode(true, false);
-			} else if (display_mode === "wireframe") {
+			} else if (effective_display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
 				update_camera(camera_position, zoom_speed, pan_speed);
