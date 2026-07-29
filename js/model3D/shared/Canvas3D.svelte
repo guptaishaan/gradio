@@ -96,7 +96,14 @@
 
 			if (!mounted || currentViewer !== viewer) return;
 
-			if (display_mode === "point_cloud") {
+			// Auto-detect point-cloud-only data (no face data) and force point cloud rendering
+			const hasFaces =
+				viewerDetails?.scene.meshes.some((mesh) => {
+					const indices = mesh.getIndices();
+					return indices !== null && indices.length > 0;
+				}) ?? true;
+
+			if (display_mode === "point_cloud" || !hasFaces) {
 				setRenderingMode(true, false);
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
