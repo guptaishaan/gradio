@@ -101,6 +101,15 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
+				// Auto-detect point cloud data: if no mesh has face indices, force point cloud rendering
+				if (viewerDetails) {
+					const hasFaces = viewerDetails.scene.meshes.some(
+						(mesh) => mesh.getTotalIndices() > 0
+					);
+					if (!hasFaces) {
+						setRenderingMode(true, false);
+					}
+				}
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}
 		} else {
