@@ -101,7 +101,21 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point cloud data: if all geometry meshes lack face/index data,
+				// fall back to point cloud rendering so vertex-only files (.obj without "f"
+				// lines, .ply with xyz+rgb only, etc.) are visible.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				const geometryMeshes = meshes.filter(
+					(m) => m.getTotalVertices() > 0
+				);
+				const isPointCloudData =
+					geometryMeshes.length > 0 &&
+					geometryMeshes.every((m) => m.getTotalIndices() === 0);
+				if (isPointCloudData) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();
