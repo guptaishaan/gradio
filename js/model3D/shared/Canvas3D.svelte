@@ -101,6 +101,17 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
+				// Auto-detect vertex-only (point cloud) data that has no face/index
+				// information (e.g. .obj without "f" lines, or a non-GS .ply with only
+				// x,y,z,r,g,b properties). BabylonJS renders nothing for such meshes in
+				// solid mode, so fall back to point cloud rendering automatically.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				const hasFaces = meshes.some(
+					(mesh) => (mesh.getIndices()?.length ?? 0) > 0
+				);
+				if (meshes.length > 0 && !hasFaces) {
+					setRenderingMode(true, false);
+				}
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}
 		} else {
