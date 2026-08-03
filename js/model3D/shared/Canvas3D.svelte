@@ -101,7 +101,18 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point cloud data: if the loaded geometry has no face
+				// indices (e.g. OBJ/PLY with only vertex data and no "f" lines),
+				// enable point cloud rendering automatically.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				if (
+					meshes.length > 0 &&
+					meshes.every((m) => m.getTotalIndices() === 0)
+				) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();

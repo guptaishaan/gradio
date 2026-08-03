@@ -67,14 +67,41 @@
 		return module.default;
 	}
 
+	async function isGaussianSplatPly(url: string): Promise<boolean> {
+		try {
+			const response = await fetch(url, {
+				headers: { Range: "bytes=0-2047" }
+			});
+			const text = await response.text();
+			return /\bproperty\s+\S+\s+(f_dc_|scale_|rot_|opacity)/.test(text);
+		} catch {
+			return false;
+		}
+	}
+
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
-			if (use_3dgs) {
+			const path = value.path;
+			if (path.endsWith(".splat")) {
+				use_3dgs = true;
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
 				});
+			} else if (path.endsWith(".ply")) {
+				isGaussianSplatPly(value.url ?? value.path).then((is3dgs) => {
+					use_3dgs = is3dgs;
+					if (is3dgs) {
+						loadCanvas3DGS().then((component) => {
+							Canvas3DGSComponent = component;
+						});
+					} else {
+						loadCanvas3D().then((component) => {
+							Canvas3DComponent = component;
+						});
+					}
+				});
 			} else {
+				use_3dgs = false;
 				loadCanvas3D().then((component) => {
 					Canvas3DComponent = component;
 				});
