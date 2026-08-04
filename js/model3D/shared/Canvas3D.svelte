@@ -101,6 +101,15 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
+				// Auto-detect point cloud data: if no mesh has face/index data,
+				// fall back to point cloud rendering so the geometry is visible.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				const isPointCloud =
+					meshes.length > 0 &&
+					meshes.every((mesh) => mesh.getTotalIndices() === 0);
+				if (isPointCloud) {
+					setRenderingMode(true, false);
+				}
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}
 		} else {
