@@ -101,6 +101,16 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
+				// Auto-detect point cloud data: if all meshes have no face indices,
+				// the file is vertex-only (e.g. .obj without "f" lines, or .ply
+				// with only x/y/z/rgb columns), so render it as a point cloud.
+				const meshes = viewerDetails?.scene?.meshes ?? [];
+				const isPointCloudOnly =
+					meshes.length > 0 &&
+					meshes.every((mesh: any) => mesh.getTotalIndices() === 0);
+				if (isPointCloudOnly) {
+					setRenderingMode(true, false);
+				}
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}
 		} else {
