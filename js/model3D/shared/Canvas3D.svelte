@@ -96,7 +96,11 @@
 
 			if (!mounted || currentViewer !== viewer) return;
 
-			if (display_mode === "point_cloud") {
+			const hasNoFaces =
+				viewerDetails?.scene.meshes.every(
+					(m) => (m.getTotalIndices?.() ?? 0) === 0
+				) ?? false;
+			if (display_mode === "point_cloud" || hasNoFaces) {
 				setRenderingMode(true, false);
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);

@@ -177,8 +177,8 @@ describe("Static mode", () => {
 		});
 	});
 
-	test(".ply value skips undo button (Canvas3DGS branch)", async () => {
-		const { queryByLabelText, getByTestId } = await render(Model3D, {
+	test(".ply value shows undo button (Canvas3D branch)", async () => {
+		const { getByLabelText, getByTestId } = await render(Model3D, {
 			...base_props,
 			value: TEST_PLY
 		});
@@ -186,7 +186,7 @@ describe("Static mode", () => {
 		await waitFor(() => {
 			expect(getByTestId("model3d")).toBeInTheDocument();
 		});
-		expect(queryByLabelText("Undo")).not.toBeInTheDocument();
+		expect(getByLabelText("Undo")).toBeInTheDocument();
 	});
 
 	test(".splat value skips undo button (Canvas3DGS branch)", async () => {
@@ -258,14 +258,14 @@ describe("Interactive mode", () => {
 		expect(getByLabelText("common.undo")).toBeInTheDocument();
 	});
 
-	test("undo is not available for .ply files", async () => {
-		const { getByLabelText, queryByLabelText } = await render(Model3D, {
+	test("undo is available for .ply files", async () => {
+		const { getByLabelText } = await render(Model3D, {
 			...interactive_props,
 			value: TEST_PLY
 		});
 
 		expect(getByLabelText("common.clear")).toBeInTheDocument();
-		expect(queryByLabelText("common.undo")).not.toBeInTheDocument();
+		expect(getByLabelText("common.undo")).toBeInTheDocument();
 	});
 
 	test("undo is not available for .splat files", async () => {
@@ -664,12 +664,11 @@ describe("Edge cases", () => {
 		});
 	});
 
-	test("switching from gltf to ply removes undo button", async () => {
-		const { set_data, getByTestId, getByLabelText, queryByLabelText } =
-			await render(Model3D, {
-				...base_props,
-				value: TEST_GLTF
-			});
+	test("switching from gltf to ply keeps undo button (Canvas3D branch)", async () => {
+		const { set_data, getByTestId, getByLabelText } = await render(Model3D, {
+			...base_props,
+			value: TEST_GLTF
+		});
 
 		await waitFor(() => {
 			expect(getByLabelText("Undo")).toBeInTheDocument();
@@ -679,20 +678,19 @@ describe("Edge cases", () => {
 		await waitFor(() => {
 			expect(getByTestId("model3d")).toBeInTheDocument();
 		});
-		expect(queryByLabelText("Undo")).not.toBeInTheDocument();
+		expect(getByLabelText("Undo")).toBeInTheDocument();
 	});
 
-	test("switching from ply to gltf restores undo button", async () => {
-		const { set_data, getByTestId, getByLabelText, queryByLabelText } =
-			await render(Model3D, {
-				...base_props,
-				value: TEST_PLY
-			});
+	test("switching from ply to gltf keeps undo button", async () => {
+		const { set_data, getByTestId, getByLabelText } = await render(Model3D, {
+			...base_props,
+			value: TEST_PLY
+		});
 
 		await waitFor(() => {
 			expect(getByTestId("model3d")).toBeInTheDocument();
 		});
-		expect(queryByLabelText("Undo")).not.toBeInTheDocument();
+		expect(getByLabelText("Undo")).toBeInTheDocument();
 
 		await set_data({ value: TEST_GLTF });
 		await waitFor(() => {

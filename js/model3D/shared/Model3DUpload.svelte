@@ -71,7 +71,7 @@
 
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
+			use_3dgs = value.path.endsWith(".splat");
 			if (use_3dgs) {
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
