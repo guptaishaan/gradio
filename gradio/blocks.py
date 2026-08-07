@@ -3202,9 +3202,14 @@ Received inputs:
         if self.share:
             try:
                 if self.share_url is None:
+                    local_port = (
+                        self.node_port
+                        if self._node_is_proxy and self.node_port is not None
+                        else self.server_port
+                    )
                     share_url = networking.setup_tunnel(
                         local_host=self.server_name,
-                        local_port=self.server_port,
+                        local_port=local_port,
                         share_token=self.share_token,
                         share_server_address=self.share_server_address,
                         share_server_tls_certificate=self.share_server_tls_certificate,
