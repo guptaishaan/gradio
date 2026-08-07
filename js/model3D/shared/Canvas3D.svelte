@@ -101,7 +101,15 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point cloud data: if no mesh has face indices,
+				// fall back to point_cloud rendering so vertex-only files display.
+				const meshes = viewerDetails?.scene.meshes ?? [];
+				const hasFaces = meshes.some((mesh) => mesh.getTotalIndices() > 0);
+				if (!hasFaces) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();
