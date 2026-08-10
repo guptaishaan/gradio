@@ -69,14 +69,47 @@
 		return module.default;
 	}
 
+	async function isGaussianSplatPly(url: string): Promise<boolean> {
+		try {
+			const response = await fetch(url);
+			const reader = response.body!.getReader();
+			const { value: chunk } = await reader.read();
+			reader.cancel();
+			if (!chunk) return false;
+			const header = new TextDecoder("ascii").decode(chunk.slice(0, 2048));
+			const endHeaderIdx = header.indexOf("end_header");
+			if (endHeaderIdx === -1) return false;
+			const headerText = header.slice(0, endHeaderIdx);
+			return headerText.includes(" opacity") || headerText.includes(" scale_0");
+		} catch {
+			return false;
+		}
+	}
+
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
-			if (use_3dgs) {
+			if (value.path.endsWith(".splat")) {
+				use_3dgs = true;
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
 				});
+			} else if (value.path.endsWith(".ply") && value.url) {
+				// Default to Canvas3D; switch to Canvas3DGS only for Gaussian Splat PLY files
+				use_3dgs = false;
+				loadCanvas3D().then((component) => {
+					Canvas3DComponent = component;
+				});
+				const plyUrl = value.url;
+				isGaussianSplatPly(plyUrl).then((isGS) => {
+					if (isGS) {
+						use_3dgs = true;
+						loadCanvas3DGS().then((component) => {
+							Canvas3DGSComponent = component;
+						});
+					}
+				});
 			} else {
+				use_3dgs = false;
 				loadCanvas3D().then((component) => {
 					Canvas3DComponent = component;
 				});
