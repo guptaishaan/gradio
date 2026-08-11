@@ -101,7 +101,15 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
-				update_camera(camera_position, zoom_speed, pan_speed);
+				// Auto-detect point-cloud-only models (no face/index data, e.g. OBJ or PLY without faces)
+				const scene = viewerDetails?.scene;
+				const hasFaces =
+					scene?.meshes?.some((m: any) => m.getTotalIndices() > 0) ?? true;
+				if (scene && !hasFaces && scene.meshes.length > 0) {
+					setRenderingMode(true, false);
+				} else {
+					update_camera(camera_position, zoom_speed, pan_speed);
+				}
 			}
 		} else {
 			currentViewer.resetModel();

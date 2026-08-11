@@ -46,14 +46,47 @@
 		return module.default;
 	}
 
+	async function isGaussianSplatPly(url: string): Promise<boolean> {
+		try {
+			const response = await fetch(url, {
+				headers: { Range: "bytes=0-2047" }
+			});
+			const text = await response.text();
+			// Gaussian Splat PLY files have these extra properties in the header
+			return (
+				text.includes("scale_0") ||
+				text.includes("rot_0") ||
+				text.includes("opacity")
+			);
+		} catch {
+			return false;
+		}
+	}
+
 	$effect(() => {
 		if (value) {
-			use_3dgs = value.path.endsWith(".splat") || value.path.endsWith(".ply");
-			if (use_3dgs) {
+			const path = value.path;
+			const url = value.url;
+			if (path.endsWith(".splat")) {
+				use_3dgs = true;
 				loadCanvas3DGS().then((component) => {
 					Canvas3DGSComponent = component;
 				});
+			} else if (path.endsWith(".ply") && url) {
+				isGaussianSplatPly(url).then((isGS) => {
+					use_3dgs = isGS;
+					if (isGS) {
+						loadCanvas3DGS().then((component) => {
+							Canvas3DGSComponent = component;
+						});
+					} else {
+						loadCanvas3D().then((component) => {
+							Canvas3DComponent = component;
+						});
+					}
+				});
 			} else {
+				use_3dgs = false;
 				loadCanvas3D().then((component) => {
 					Canvas3DComponent = component;
 				});
