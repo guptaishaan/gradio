@@ -101,6 +101,19 @@
 			} else if (display_mode === "wireframe") {
 				setRenderingMode(false, true);
 			} else {
+				// Auto-detect point cloud data: if the model has no face indices
+				// (e.g. an .obj without "f" lines, or a standard xyz+rgb .ply),
+				// fall back to point cloud rendering so the geometry remains visible.
+				if (viewerDetails) {
+					const meshes = viewerDetails.scene.meshes;
+					const hasIndices = meshes.some(
+						(mesh) => mesh.getTotalIndices() > 0
+					);
+					if (meshes.length > 0 && !hasIndices) {
+						setRenderingMode(true, false);
+						return;
+					}
+				}
 				update_camera(camera_position, zoom_speed, pan_speed);
 			}
 		} else {
