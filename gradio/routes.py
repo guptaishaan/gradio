@@ -987,7 +987,7 @@ class App(FastAPI):
 
         @app.get("/config/", dependencies=[Depends(login_check)])
         @app.get("/config", dependencies=[Depends(login_check)])
-        def get_config(request: fastapi.Request, deep_link: str = ""):
+        async def get_config(request: fastapi.Request, deep_link: str = ""):
             config = utils.safe_deepcopy(app.get_blocks().config)
             root = route_utils.get_root_url(
                 request=request,
@@ -996,7 +996,7 @@ class App(FastAPI):
                 or request.scope.get("root_path")
                 or blocks.custom_mount_path,
             )
-            config["username"] = get_current_user(request)
+            config["username"] = await get_current_user(request)
             if deep_link:
                 components, deep_link_state = load_deep_link(deep_link, config, page="")  # type: ignore
                 config["components"] = components  # type: ignore
