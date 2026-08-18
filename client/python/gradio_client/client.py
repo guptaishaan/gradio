@@ -334,6 +334,12 @@ class Client:
         resp = req.json()
         event_id = resp["event_id"]
 
+        # Register the event_id *before* the stream thread can start receiving
+        # messages for it, so that stream_messages() never creates a deque that
+        # the caller would then silently overwrite (race condition).
+        self.pending_event_ids.add(event_id)
+        self.pending_messages_per_event[event_id] = deque()
+
         if not self.stream_open:
             self.stream_open = True
 
@@ -1207,8 +1213,9 @@ class Endpoint:
                 event_id = self.client.send_data(
                     data, hash_data, self.protocol, helper.request_headers
                 )
-                self.client.pending_event_ids.add(event_id)
-                self.client.pending_messages_per_event[event_id] = deque()
+                # pending_event_ids and pending_messages_per_event are already
+                # registered inside send_data to avoid a race with the stream
+                # thread; nothing to do here.
                 helper.event_id = event_id
                 result = self._sse_fn_v1plus(helper, event_id, self.protocol)
             else:
