@@ -681,6 +681,21 @@
 		}
 	}
 
+	function handle_focus(e: FocusEvent): void {
+		// Auto-select the first cell when the table receives focus via keyboard
+		// (i.e. focus came from outside the table, not from an internal element)
+		if (
+			!selected &&
+			selected_header === false &&
+			rows.length > 0 &&
+			resolved_headers.length > 0 &&
+			(!e.relatedTarget || !parent?.contains(e.relatedTarget as Node))
+		) {
+			selected = [rows[0].original._index, 0];
+			selected_cells = [selected];
+		}
+	}
+
 	function handle_keydown(e: KeyboardEvent): void {
 		if (!selected && selected_header === false) return;
 
@@ -689,6 +704,10 @@
 
 		if (selected) {
 			const [row, col] = selected;
+
+			// Find the position of the selected row in the (possibly filtered) rows
+			// array. `row` is the original data index; `row_pos` is the virtual index.
+			const row_pos = rows.findIndex((r) => r.original._index === row);
 
 			if (
 				editing &&
@@ -703,18 +722,20 @@
 			switch (e.key) {
 				case "ArrowUp":
 					e.preventDefault();
-					if (row > 0) {
-						selected = [row - 1, col];
+					if (row_pos > 0) {
+						const new_idx = rows[row_pos - 1].original._index;
+						selected = [new_idx, col];
 						selected_cells = [selected];
-						virtualizer.instance.scrollToIndex(row - 1, { align: "auto" });
+						virtualizer.instance.scrollToIndex(row_pos - 1, { align: "auto" });
 					}
 					break;
 				case "ArrowDown":
 					e.preventDefault();
-					if (row < num_rows - 1) {
-						selected = [row + 1, col];
+					if (row_pos < num_rows - 1) {
+						const new_idx = rows[row_pos + 1].original._index;
+						selected = [new_idx, col];
 						selected_cells = [selected];
-						virtualizer.instance.scrollToIndex(row + 1, { align: "auto" });
+						virtualizer.instance.scrollToIndex(row_pos + 1, { align: "auto" });
 					}
 					break;
 				case "ArrowLeft":
@@ -732,14 +753,34 @@
 					}
 					break;
 				case "Tab": {
-					e.preventDefault();
 					const was_editing = !!editing;
+					const at_first = row_pos === 0 && col === 0;
+					const at_last = row_pos === num_rows - 1 && col === num_cols - 1;
+
+					// At the boundary, let Tab/Shift+Tab escape the dataframe
+					if ((e.shiftKey && at_first) || (!e.shiftKey && at_last)) {
+						editing = false;
+						selected = false;
+						selected_cells = [];
+						// Do NOT call e.preventDefault() — allow the browser to move focus
+						break;
+					}
+
+					e.preventDefault();
 					if (e.shiftKey) {
-						if (col > 0) selected = [row, col - 1];
-						else if (row > 0) selected = [row - 1, num_cols - 1];
+						if (col > 0) {
+							selected = [row, col - 1];
+						} else {
+							const new_idx = rows[row_pos - 1].original._index;
+							selected = [new_idx, num_cols - 1];
+						}
 					} else {
-						if (col < num_cols - 1) selected = [row, col + 1];
-						else if (row < num_rows - 1) selected = [row + 1, 0];
+						if (col < num_cols - 1) {
+							selected = [row, col + 1];
+						} else {
+							const new_idx = rows[row_pos + 1].original._index;
+							selected = [new_idx, 0];
+						}
 					}
 					selected_cells = [selected];
 					if (was_editing) {
@@ -762,8 +803,9 @@
 					e.preventDefault();
 					if (editing) {
 						editing = false;
-						if (row < num_rows - 1) {
-							selected = [row + 1, col];
+						if (row_pos < num_rows - 1) {
+							const new_idx = rows[row_pos + 1].original._index;
+							selected = [new_idx, col];
 							selected_cells = [selected];
 						}
 						tick().then(() => parent?.focus());
@@ -888,11 +930,15 @@
 	let disable_scroll = $derived(
 		active_cell_menu !== null || active_header_menu !== null
 	);
-	let selected_index = $derived(selected !== false ? selected[0] : false);
+	let selected_row_pos = $derived.by(() => {
+		if (selected === false) return false;
+		const pos = rows.findIndex((r) => r.original._index === selected[0]);
+		return pos >= 0 ? pos : false;
+	});
 
 	$effect(() => {
-		if (typeof selected_index === "number") {
-			virtualizer.instance.scrollToIndex(selected_index, { align: "auto" });
+		if (typeof selected_row_pos === "number") {
+			virtualizer.instance.scrollToIndex(selected_row_pos, { align: "auto" });
 		}
 	});
 
@@ -946,6 +992,7 @@
 		class:dragging={is_dragging}
 		class:menu-open={active_cell_menu || active_header_menu}
 		onkeydown={handle_keydown}
+		onfocus={handle_focus}
 		role="grid"
 		tabindex="0"
 		style="--df-max-col-width: {viewport_width}px;"
