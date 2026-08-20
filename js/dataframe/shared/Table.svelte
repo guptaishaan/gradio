@@ -681,6 +681,15 @@
 		}
 	}
 
+	function handle_table_focus(_e: FocusEvent): void {
+		// When focus arrives via Tab (no cell selected yet), select the first visible
+		// cell so keyboard navigation and the visual selection indicator work immediately.
+		if (!selected && selected_header === false && rows.length > 0 && resolved_headers.length > 0) {
+			selected = [rows[0].original._index, 0];
+			selected_cells = [selected];
+		}
+	}
+
 	function handle_keydown(e: KeyboardEvent): void {
 		if (!selected && selected_header === false) return;
 
@@ -703,18 +712,36 @@
 			switch (e.key) {
 				case "ArrowUp":
 					e.preventDefault();
-					if (row > 0) {
-						selected = [row - 1, col];
-						selected_cells = [selected];
-						virtualizer.instance.scrollToIndex(row - 1, { align: "auto" });
+					{
+						// Use visible (filtered/sorted) row index so arrow keys work
+						// correctly when a search or sort is active.
+						const visible_idx = rows.findIndex(
+							(r) => r.original._index === row
+						);
+						if (visible_idx > 0) {
+							const prev = rows[visible_idx - 1];
+							selected = [prev.original._index, col];
+							selected_cells = [selected];
+							virtualizer.instance.scrollToIndex(visible_idx - 1, {
+								align: "auto"
+							});
+						}
 					}
 					break;
 				case "ArrowDown":
 					e.preventDefault();
-					if (row < num_rows - 1) {
-						selected = [row + 1, col];
-						selected_cells = [selected];
-						virtualizer.instance.scrollToIndex(row + 1, { align: "auto" });
+					{
+						const visible_idx = rows.findIndex(
+							(r) => r.original._index === row
+						);
+						if (visible_idx >= 0 && visible_idx < num_rows - 1) {
+							const next = rows[visible_idx + 1];
+							selected = [next.original._index, col];
+							selected_cells = [selected];
+							virtualizer.instance.scrollToIndex(visible_idx + 1, {
+								align: "auto"
+							});
+						}
 					}
 					break;
 				case "ArrowLeft":
@@ -732,14 +759,36 @@
 					}
 					break;
 				case "Tab": {
-					e.preventDefault();
 					const was_editing = !!editing;
+					const visible_idx = rows.findIndex(
+						(r) => r.original._index === row
+					);
+					const at_first = col === 0 && visible_idx <= 0;
+					const at_last = col === num_cols - 1 && visible_idx >= num_rows - 1;
+
+					// At the boundary: release Tab so focus moves to the next/previous
+					// focusable element outside the dataframe.
+					if ((!e.shiftKey && at_last) || (e.shiftKey && at_first)) {
+						editing = false;
+						selected = false;
+						selected_cells = [];
+						// Do NOT call e.preventDefault() — let the browser handle Tab.
+						break;
+					}
+
+					e.preventDefault();
 					if (e.shiftKey) {
-						if (col > 0) selected = [row, col - 1];
-						else if (row > 0) selected = [row - 1, num_cols - 1];
+						if (col > 0) {
+							selected = [row, col - 1];
+						} else if (visible_idx > 0) {
+							selected = [rows[visible_idx - 1].original._index, num_cols - 1];
+						}
 					} else {
-						if (col < num_cols - 1) selected = [row, col + 1];
-						else if (row < num_rows - 1) selected = [row + 1, 0];
+						if (col < num_cols - 1) {
+							selected = [row, col + 1];
+						} else if (visible_idx < num_rows - 1) {
+							selected = [rows[visible_idx + 1].original._index, 0];
+						}
 					}
 					selected_cells = [selected];
 					if (was_editing) {
@@ -946,6 +995,7 @@
 		class:dragging={is_dragging}
 		class:menu-open={active_cell_menu || active_header_menu}
 		onkeydown={handle_keydown}
+		onfocus={handle_table_focus}
 		role="grid"
 		tabindex="0"
 		style="--df-max-col-width: {viewport_width}px;"
@@ -1286,6 +1336,15 @@
 
 	.table-wrap:focus-within {
 		outline: none;
+	}
+
+	/* Show a visible focus ring on the table container itself when it has keyboard
+	   focus but no individual cell is selected (e.g. just before the first arrow
+	   keypress selects a cell). This gives keyboard-only users the standard visual
+	   indication that the component is active. */
+	.table-wrap:focus:not(:focus-within) {
+		outline: 2px solid var(--color-accent);
+		outline-offset: 1px;
 	}
 
 	.table-wrap.dragging {
