@@ -29,8 +29,8 @@ VisualQuestionAnsweringPipeline = getattr(
 
 @pytest.mark.flaky
 def test_interface_in_blocks():
-    pipe1 = transformers.pipeline(model="deepset/roberta-base-squad2")  # type: ignore
-    pipe2 = transformers.pipeline(model="deepset/roberta-base-squad2")  # type: ignore
+    pipe1 = transformers.pipeline(model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")  # type: ignore
+    pipe2 = transformers.pipeline(model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")  # type: ignore
     with gr.Blocks() as demo:
         with gr.Tab("Image Inference"):
             gr.Interface.from_pipeline(pipe1)
@@ -44,12 +44,10 @@ def test_interface_in_blocks():
 def test_transformers_load_from_pipeline():
     from transformers import pipeline
 
-    pipe = pipeline(model="deepset/roberta-base-squad2")  # type: ignore
+    pipe = pipeline(model="distilbert/distilbert-base-uncased-finetuned-sst-2-english")  # type: ignore
     io = gr.Interface.from_pipeline(pipe)
-    assert io.input_components[0].label == "Context"  # type: ignore
-    assert io.input_components[1].label == "Question"  # type: ignore
-    assert io.output_components[0].label == "Answer"  # type: ignore
-    assert io.output_components[1].label == "Score"  # type: ignore
+    assert io.input_components[0].label == "Input"  # type: ignore
+    assert io.output_components[0].label == "Classification"  # type: ignore
 
 
 class TestHandleTransformersPipelines(unittest.TestCase):
