@@ -237,6 +237,16 @@ def _redirect_to_target(
         safe_target += "?" + parsed.query
     if parsed.fragment:
         safe_target += "#" + parsed.fragment
+    # In a Space, redirect to the absolute *.hf.space URL rather than a
+    # relative path. When the Space is embedded as an iframe on huggingface.co,
+    # browsers in incognito mode block third-party cookies (even those marked
+    # SameSite=None; Secure), so the session cookie written by the OAuth
+    # callback is invisible on the next request and the user appears logged
+    # out. Redirecting to the direct Space URL breaks out of the iframe and
+    # puts the cookie in a first-party context where it is always accepted.
+    if host := os.environ.get("SPACE_HOST"):
+        host = host.split(",")[0].rstrip("/")
+        return RedirectResponse("https://" + host + safe_target)
     return RedirectResponse(safe_target)
 
 
