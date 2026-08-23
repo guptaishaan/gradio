@@ -16,4 +16,6 @@ aws s3 cp gradio/templates/frontend "s3://gradio/${new_version}/" --recursive --
 
 rm -rf dist/*
 rm -rf build/*
+# Generate component .pyi stub files so they are included as wheel artifacts
+python3 -c "import gradio"
 python3 -m build
