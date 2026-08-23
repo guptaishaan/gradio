@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import time
 import typing
@@ -9,7 +10,7 @@ import warnings
 from dataclasses import dataclass, field
 
 import fastapi
-from fastapi.responses import RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from huggingface_hub import get_token, whoami
 
 from gradio.utils import get_space
@@ -128,7 +129,8 @@ def _add_oauth_routes(app: fastapi.FastAPI) -> None:
 
             # If the user is redirected more than 3 times, it is very likely that the cookie is not working properly.
             # (e.g. browser is blocking third-party cookies in iframe). In this case, redirect the user in the
-            # non-iframe view.
+            # non-iframe view by navigating window.top out of the iframe so that the Space is no longer
+            # treated as a third-party context and session cookies are accepted.
             if nb_redirects > MAX_REDIRECTS:
                 host = os.environ.get("SPACE_HOST")
                 if host is None:  # cannot happen in a Space
@@ -137,7 +139,11 @@ def _add_oauth_routes(app: fastapi.FastAPI) -> None:
                         " Cannot redirect to non-iframe view."
                     ) from None
                 host_url = "https://" + host.rstrip("/")
-                return RedirectResponse(host_url + login_uri)
+                top_redirect_url = json.dumps(host_url + login_uri)
+                return HTMLResponse(
+                    content=f"<script>window.top.location.href = {top_redirect_url};</script>",
+                    status_code=200,
+                )
 
             # Redirect the user to the login page again
             return RedirectResponse(login_uri)
