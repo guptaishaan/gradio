@@ -125,7 +125,16 @@ _js_handle_redirect = """
     uri = buttonValue === BUTTON_DEFAULT_VALUE ? '/login/huggingface?_target_url=/REDIRECT_URL' : '/logout?_target_url=/REDIRECT_URL';
     window.parent?.postMessage({ type: "SET_SCROLLING", enabled: true }, "*");
     setTimeout(() => {
-        window.location.assign(uri + window.location.search);
+        if (window !== window.top) {
+            // The app is running inside an iframe (e.g. embedded on huggingface.co).
+            // Navigating only the iframe would make the session cookie a third-party
+            // cookie, which is blocked in incognito/private-browsing mode.  Instead,
+            // navigate the top-level window to the Space's direct *.hf.space URL so
+            // the cookie is first-party and survives the OAuth round-trip.
+            window.top.location.assign(window.location.origin + uri + window.location.search);
+        } else {
+            window.location.assign(uri + window.location.search);
+        }
     }, 500);
 }
 """
