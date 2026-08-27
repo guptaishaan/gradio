@@ -324,6 +324,11 @@
 			return;
 		}
 
+		// Only process image items when there is no text in the clipboard.
+	// Applications like Excel place both a text representation and an image
+	// of the selection on the clipboard; uploading the image in that case is
+	// redundant and breaks downstream processing.
+	if (!text) {
 		for (let index in items) {
 			const item = items[index];
 			if (item.kind === "file" && item.type.includes("image")) {
@@ -332,6 +337,7 @@
 			}
 		}
 	}
+}
 
 	function handle_dragenter(event: DragEvent): void {
 		event.preventDefault();
