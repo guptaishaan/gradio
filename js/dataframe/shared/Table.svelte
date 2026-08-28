@@ -389,13 +389,20 @@
 
 		const coord: CellCoordinate = [row, col];
 		if (event.shiftKey && selected) {
-			// range select
+			// range select — restrict to the currently visible (filtered) rows
 			const [r1, c1] = selected;
 			const [r2, c2] = coord;
 			const new_cells: CellCoordinate[] = [];
-			for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
-				for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
-					new_cells.push([r, c]);
+			const rMin = Math.min(r1, r2);
+			const rMax = Math.max(r1, r2);
+			const cMin = Math.min(c1, c2);
+			const cMax = Math.max(c1, c2);
+			for (const visible_row of rows) {
+				const r = visible_row.original._index;
+				if (r >= rMin && r <= rMax) {
+					for (let c = cMin; c <= cMax; c++) {
+						new_cells.push([r, c]);
+					}
 				}
 			}
 			selected_cells = new_cells;
@@ -1140,7 +1147,7 @@
 										on_menu_click={(e) => toggle_cell_menu(e, row_idx, col_idx)}
 										on_select_column={(c) => {
 											selected_cells = rows.map(
-												(_, r) => [r, c] as CellCoordinate
+												(row) => [row.original._index, c] as CellCoordinate
 											);
 											selected = selected_cells[0];
 										}}
