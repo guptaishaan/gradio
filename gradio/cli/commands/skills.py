@@ -96,7 +96,14 @@ def _create_symlink(
         # visible there and linking would clobber it with a link to itself.
         return None
     _remove_existing(link_path, force)
-    link_path.symlink_to(os.path.relpath(central_skill_path, agent_skills_dir))
+    try:
+        link_path.symlink_to(os.path.relpath(central_skill_path, agent_skills_dir))
+    except OSError:
+        # On Windows without Developer Mode or elevated privileges, symlink
+        # creation raises OSError (WinError 1314). Fall back to a plain copy
+        # so the skill is still usable; the central install remains the source
+        # of truth and `--force` will refresh the copy on the next run.
+        shutil.copytree(central_skill_path, link_path)
     return link_path
 
 
