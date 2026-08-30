@@ -96,7 +96,13 @@ def _create_symlink(
         # visible there and linking would clobber it with a link to itself.
         return None
     _remove_existing(link_path, force)
-    link_path.symlink_to(os.path.relpath(central_skill_path, agent_skills_dir))
+    try:
+        link_path.symlink_to(os.path.relpath(central_skill_path, agent_skills_dir))
+    except OSError:
+        # Symlink creation can fail on Windows without Developer Mode or elevated
+        # privileges (WinError 1314).  A directory copy is functionally identical
+        # for plain skill files, so fall back to that transparently.
+        shutil.copytree(central_skill_path, link_path)
     return link_path
 
 
