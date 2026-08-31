@@ -324,7 +324,11 @@
 			return;
 		}
 
-		for (let index in items) {
+		// If text is present in the clipboard, skip image items to avoid
+	// uploading redundant screenshots (e.g. when copying cells from Excel).
+	if (text) return;
+
+	for (let index in items) {
 			const item = items[index];
 			if (item.kind === "file" && item.type.includes("image")) {
 				const blob = item.getAsFile();
