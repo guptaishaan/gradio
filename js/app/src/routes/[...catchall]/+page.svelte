@@ -302,7 +302,7 @@
 		if (config.js) {
 			try {
 				const script = document.createElement("script");
-				script.textContent = config.js;
+				script.textContent = `(${config.js})();`;
 				document.head.appendChild(script);
 			} catch (e) {
 				console.error("Error executing custom JS:", e);
