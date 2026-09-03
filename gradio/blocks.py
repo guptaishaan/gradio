@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import dataclasses
 import hashlib
+import uuid
 import inspect
 import json
 import os
@@ -2357,7 +2358,7 @@ Received inputs:
                 data = processing_utils.add_root_url(data, root_path, None)
             is_generating, iterator = result["is_generating"], result["iterator"]
             if is_generating or was_generating:
-                run = id(old_iterator) if was_generating else id(iterator)
+                run = event_id if event_id is not None else str(uuid.uuid4())
                 async with trace_phase("streaming_diff"):
                     data = await self.handle_streaming_outputs(
                         block_fn,
