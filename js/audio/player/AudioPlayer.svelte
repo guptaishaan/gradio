@@ -297,11 +297,10 @@
 	$effect(() => {
 		// Without a waveform there is nothing to become ready, so gating the load
 		// on `waveform_ready` left the native player with no source at all.
-		if (
-			audio_player &&
-			url &&
-			(waveform_ready || !waveform_options.show_recording_waveform)
-		) {
+		// Use `!use_waveform` instead of `!waveform_options.show_recording_waveform`
+		// so that streaming values (where use_waveform is always false) also trigger
+		// load_audio(), which resets stream_active before load_stream() fires.
+		if (audio_player && url && (waveform_ready || !use_waveform)) {
 			load_audio(url);
 		}
 	});
