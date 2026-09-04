@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { untrack } from "svelte";
+
 	let { node, children, ...rest } = $props();
 
 	let component = $derived(await node.component);
@@ -20,14 +22,22 @@
 		const _props = node.props.props;
 		const _runtime = runtime;
 
-		const mounted = _runtime.mount(component.default, {
-			target: el,
-			props: {
-				shared_props: _shared_props,
-				props: _props,
-				children
-			}
-		});
+		// The custom component runs in its own Svelte runtime instance, so
+		// its synchronous init cannot reset *this* runtime's tracking
+		// context. Without untrack(), every core $state read the component
+		// makes while mounting (e.g. the Gradio class copying
+		// shared_props/props) becomes a dependency of this effect, and every
+		// later prop update unmounts and remounts the component.
+		const mounted = untrack(() =>
+			_runtime.mount(component.default, {
+				target: el!,
+				props: {
+					shared_props: _shared_props,
+					props: _props,
+					children
+				}
+			})
+		);
 
 		return () => {
 			_runtime.unmount(mounted);
