@@ -1157,6 +1157,28 @@ async def _delete_state_handler(app: App):
         await _cancel_background_task(task)
 
 
+HISTORY_TASKS_SHUTDOWN_TIMEOUT = 30  # seconds to wait for in-flight history writes
+
+
+@asynccontextmanager
+async def _drain_history_tasks_handler(app: App) -> AsyncGenerator:
+    """On shutdown, wait for any in-flight run-history write tasks to finish."""
+    try:
+        yield
+    finally:
+        tasks = getattr(getattr(app, "state", None), "history_tasks", None)
+        if tasks:
+            pending = set(tasks)
+            if pending:
+                try:
+                    await asyncio.wait_for(
+                        asyncio.gather(*pending, return_exceptions=True),
+                        timeout=HISTORY_TASKS_SHUTDOWN_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    pass
+
+
 def create_lifespan_handler(
     user_lifespan: Callable[[App], AbstractAsyncContextManager] | None,
     frequency: int | None = 1,
@@ -1169,6 +1191,7 @@ def create_lifespan_handler(
         state = None
         async with AsyncExitStack() as stack:
             await stack.enter_async_context(_delete_state_handler(app))
+            await stack.enter_async_context(_drain_history_tasks_handler(app))
             if frequency and age:
                 await stack.enter_async_context(_lifespan_handler(app, frequency, age))
             if user_lifespan is not None:
