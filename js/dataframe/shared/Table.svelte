@@ -526,11 +526,18 @@
 
 		const coord: CellCoordinate = [row, col];
 		if (event.shiftKey && selected) {
-			// range select
+			// range select - iterate over visible rows only so hidden (filtered-out) rows are not included
 			const [r1, c1] = selected;
 			const [r2, c2] = coord;
 			const new_cells: CellCoordinate[] = [];
-			for (let r = Math.min(r1, r2); r <= Math.max(r1, r2); r++) {
+			const pos1 = visible_row_position(r1);
+			const pos2 = visible_row_position(r2);
+			for (
+				let p = Math.min(pos1, pos2);
+				p <= Math.max(pos1, pos2);
+				p++
+			) {
+				const r = rows[p].original._index;
 				for (let c = Math.min(c1, c2); c <= Math.max(c1, c2); c++) {
 					new_cells.push([r, c]);
 				}
