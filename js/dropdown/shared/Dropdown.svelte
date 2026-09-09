@@ -76,16 +76,19 @@
 		if (focused) {
 			return;
 		}
+		const idx = (values as (string | number | null)[]).indexOf(current_value);
 		if (
 			current_value === undefined ||
-			current_value === null ||
 			(Array.isArray(current_value) && current_value.length === 0)
 		) {
 			input_text = "";
 			selected_index = null;
-		} else if (values.includes(current_value as string | number)) {
-			input_text = names[values.indexOf(current_value as string | number)];
-			selected_index = values.indexOf(current_value as string | number);
+		} else if (idx !== -1) {
+			input_text = names[idx];
+			selected_index = idx;
+		} else if (current_value === null) {
+			input_text = "";
+			selected_index = null;
 		} else if (allow_custom_value) {
 			input_text = current_value as string;
 			selected_index = null;
@@ -169,8 +172,10 @@
 
 	function handle_blur(): void {
 		if (!allow_custom_value) {
-			input_text =
-				choices_names[choices_values.indexOf(value as string | number)] ?? "";
+			const blur_idx = (choices_values as (string | number | null)[]).indexOf(
+				value as string | number | null
+			);
+			input_text = blur_idx !== -1 ? choices_names[blur_idx] : "";
 		} else if (input_text !== last_typed_value) {
 			if (choices_names.includes(input_text)) {
 				selected_index = choices_names.indexOf(input_text);
