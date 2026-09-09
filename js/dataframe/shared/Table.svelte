@@ -1158,6 +1158,7 @@
 	<div
 		bind:this={parent}
 		class="table-wrap"
+		class:empty={values.length === 0}
 		class:dragging={is_dragging}
 		class:menu-open={active_cell_menu || active_header_menu}
 		onkeydown={handle_keydown}
@@ -1396,6 +1397,10 @@
 			<button class="scroll-top-button" onclick={scroll_to_top}>&uarr;</button>
 		{/if}
 	</div>
+
+	{#if values.length === 0 && editable && row_count[1] === "dynamic"}
+		<EmptyRowButton on_click={() => add_row()} />
+	{/if}
 </div>
 
 {#if active_cell_menu || active_header_menu}
@@ -1462,10 +1467,6 @@
 	/>
 {/if}
 
-{#if values.length === 0 && editable && row_count[1] === "dynamic"}
-	<EmptyRowButton on_click={() => add_row()} />
-{/if}
-
 <style>
 	.table-container {
 		display: flex;
@@ -1487,6 +1488,10 @@
 		min-height: 0;
 		display: flex;
 		flex-direction: column;
+	}
+
+	.table-container.fullscreen .table-wrap.empty {
+		flex: 0 0 auto;
 	}
 
 	.table-container.fullscreen .table-wrap > :global(*) {
