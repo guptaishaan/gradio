@@ -10,6 +10,7 @@ import csv
 import inspect
 import os
 import shutil
+import threading
 import warnings
 from collections.abc import Callable, Iterable, MutableMapping, Sequence
 from functools import partial
@@ -300,6 +301,8 @@ class Examples:
         self.run_on_click = run_on_click
         self.cache_event: Dependency | None = None
         self.non_none_processed_examples = UnhashableKeyDict()
+        self._example_cache_locks: dict[int, threading.Lock] = {}
+        self._example_cache_locks_lock = threading.Lock()
 
         if self.dataset.samples:
             for index, example in enumerate(self.non_none_examples):
@@ -584,11 +587,20 @@ class Examples:
         Parameters:
             example_id: The id of the example to process (zero-indexed).
         """
-        cached_index = self._get_cached_index_if_cached(example_id)
-        if cached_index is None:
-            client_utils.synchronize_async(self.cache, example_id)
-            with open(self.cached_indices_file) as f:
-                cached_index = len(f.readlines()) - 1
+        with self._example_cache_locks_lock:
+            if example_id not in self._example_cache_locks:
+                self._example_cache_locks[example_id] = threading.Lock()
+            lock = self._example_cache_locks[example_id]
+
+        with lock:
+            cached_index = self._get_cached_index_if_cached(example_id)
+            if cached_index is None:
+                client_utils.synchronize_async(self.cache, example_id)
+                cached_index = self._get_cached_index_if_cached(example_id)
+                if cached_index is None:
+                    raise IndexError(
+                        f"Example {example_id} was not found in the cache after caching."
+                    )
 
         with open(self.cached_file, encoding="utf-8") as cache:
             examples = list(csv.reader(cache))
