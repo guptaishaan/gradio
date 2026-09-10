@@ -78,15 +78,15 @@ export function data_uri_to_blob(data_uri: string): Blob {
 }
 
 export function handle_file_upload(
-	data_uri: string,
+	blob: Blob,
 	update_headers: (headers: Headers) => HeadersWithIDs[],
 	update_values: (values: CellValue[][]) => void
 ): void {
-	const blob = data_uri_to_blob(data_uri);
 	const reader = new FileReader();
 	reader.addEventListener("loadend", (e) => {
 		if (!e?.target?.result || typeof e.target.result !== "string") return;
 		const [delimiter] = guess_delimiter(e.target.result, [",", "\t"]);
+		if (!delimiter) return;
 		const [head, ...rest] = dsvFormat(delimiter).parseRows(e.target.result);
 		update_headers(head);
 		update_values(rest);

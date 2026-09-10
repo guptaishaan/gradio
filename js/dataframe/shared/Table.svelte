@@ -1052,8 +1052,16 @@
 	}
 
 	function on_file_upload(file_data: any): void {
+		if (!editable) return;
+		const blob: Blob | undefined =
+			file_data instanceof Blob
+				? file_data
+				: file_data?.blob instanceof Blob
+					? file_data.blob
+					: undefined;
+		if (!blob) return;
 		handle_file_upload(
-			typeof file_data === "string" ? file_data : (file_data?.data ?? ""),
+			blob,
 			(head) => {
 				headers = head.map((h: any) => h ?? "");
 				return (headers as string[]).map((h: string, i: number) => ({
