@@ -505,7 +505,7 @@ class Video(StreamingOutput, Component):
         ff = FFmpeg(  # type: ignore
             inputs={mp4_file: None},
             outputs={
-                ts_file: "-c:v libx264 -c:a aac -f mpegts -bsf:v h264_mp4toannexb -bsf:a aac_adtstoasc"
+                ts_file: "-c copy -f mpegts -bsf:v h264_mp4toannexb"
             },
             global_options=["-y"],
         )
