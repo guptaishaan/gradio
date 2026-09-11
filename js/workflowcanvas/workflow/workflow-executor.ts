@@ -335,10 +335,23 @@ export async function executeWorkflow(
 	serverCallModel?: ServerCallModelFn,
 	serverFetchDataset?: ServerFetchDatasetFn,
 	serverCallFn?: ServerCallPyFn,
-	stream_text_generation?: StreamTextFn
+	stream_text_generation?: StreamTextFn,
+	cachedOutputs?: Record<string, Record<string, NodeDataValue>>
 ): Promise<void> {
 	const { nodes, edges } = toLegacyShape(workflow);
+	// Pre-seed dataMap with any cached outputs so downstream nodes can consume
+	// them without re-executing their upstream. Nodes whose outputs are already
+	// in the cache are marked "done" immediately and their values emitted.
 	const dataMap: Record<string, Record<string, NodeDataValue>> = {};
+	if (cachedOutputs) {
+		for (const [nodeId, portValues] of Object.entries(cachedOutputs)) {
+			dataMap[nodeId] = { ...portValues };
+			onStatus(nodeId, "done");
+			for (const [portId, value] of Object.entries(portValues)) {
+				onOutput(nodeId, portId, value);
+			}
+		}
+	}
 	const failed_nodes = new Map<string, string>();
 
 	function mark_node_failed(node: WFNode, err: unknown): void {
@@ -363,7 +376,8 @@ export async function executeWorkflow(
 		return `"${port.label}" is missing — an upstream node may have failed`;
 	}
 
-	// Seed input nodes (including component nodes with no incoming edges)
+	// Seed input nodes (including component nodes with no incoming edges).
+	// Skip nodes whose outputs were already pre-seeded from the cache.
 	for (const node of nodes.filter((n) => {
 		if (n.kind === "input") return true;
 		if (n.kind === "component") {
@@ -371,7 +385,9 @@ export async function executeWorkflow(
 		}
 		return false;
 	})) {
-		dataMap[node.id] = { ...(node.data ?? {}) };
+		if (dataMap[node.id] === undefined) {
+			dataMap[node.id] = { ...(node.data ?? {}) };
+		}
 	}
 
 	// Build layers for parallel execution
@@ -391,6 +407,10 @@ export async function executeWorkflow(
 
 	async function executeNode(node: WFNode): Promise<void> {
 		if (signal?.aborted) return;
+
+		// Skip nodes whose outputs were pre-seeded from the cache — they've
+		// already been emitted and dataMap is ready for downstream nodes.
+		if (dataMap[node.id] !== undefined) return;
 
 		// Component nodes with no incoming edges act as inputs
 		const isComponentInput =

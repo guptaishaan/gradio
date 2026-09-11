@@ -770,3 +770,74 @@ describe("executeWorkflow — cascading failure messages", () => {
 		expect(errors.d).toContain("moondream2");
 	});
 });
+
+describe("executeWorkflow — cachedOutputs", () => {
+	test("upstream node in cachedOutputs is not re-executed", async () => {
+		const callFn = vi.fn().mockResolvedValue(JSON.stringify(["edited"]));
+
+		const upstream: OperatorNode = {
+			id: "gen",
+			role: "operator",
+			kind: "fn",
+			label: "Generate Image",
+			fn: "generate",
+			inputs: [],
+			outputs: [{ id: "out", label: "Image", type: "image" }],
+			data: {},
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 80,
+			runtime: "client"
+		};
+		const downstream: OperatorNode = {
+			id: "edit",
+			role: "operator",
+			kind: "fn",
+			label: "Edit Image",
+			fn: "edit",
+			inputs: [{ id: "in", label: "Image", type: "image", required: true }],
+			outputs: [{ id: "out", label: "Result", type: "image" }],
+			data: {},
+			x: 200,
+			y: 0,
+			width: 200,
+			height: 80,
+			runtime: "client"
+		};
+		const edge: WFEdge = {
+			id: "e1",
+			from_node_id: "gen",
+			from_port_id: "out",
+			to_node_id: "edit",
+			to_port_id: "in",
+			type: "image"
+		};
+
+		const cachedImage = { url: "/gradio_api/file=cached.png" };
+		const cachedOutputs = { gen: { out: cachedImage as NodeDataValue } };
+
+		const { onStatus, statuses } = statusBag();
+		await executeWorkflow(
+			emptyV2([upstream, downstream], [], [edge]),
+			onStatus,
+			() => {},
+			undefined,
+			undefined,
+			undefined,
+			undefined,
+			callFn as unknown as Parameters<typeof executeWorkflow>[7],
+			undefined,
+			cachedOutputs
+		);
+
+		// The upstream "generate" function must NOT have been called
+		const calls = callFn.mock.calls.map((c) => c[0]);
+		expect(calls).not.toContain("generate");
+		// The downstream "edit" function must have been called once
+		expect(calls).toContain("edit");
+		// Both nodes end up in "done" state
+		expect(statuses.gen).toBe("done");
+		expect(statuses.edit).toBe("done");
+	});
+});

@@ -2046,10 +2046,40 @@
 
 	async function runNode(targetId: string): Promise<void> {
 		if (running) return;
-		await runWorkflow(buildUpstreamSubgraphImpl($workflow, targetId));
+		const subgraph = buildUpstreamSubgraphImpl($workflow, targetId);
+		// Collect outputs for upstream nodes that are not stale so the executor
+		// can reuse them instead of re-executing the entire upstream subgraph.
+		const cached: Record<string, Record<string, NodeDataValue>> = {};
+		for (const section of [
+			subgraph.references,
+			subgraph.operators,
+			subgraph.subjects
+		] as const) {
+			for (const ref of section) {
+				const node = legacyView.nodes.find((n) => n.id === ref.id);
+				if (!node) continue;
+				if (ref.id === targetId) continue;
+				if (staleNodes.has(ref.id)) continue;
+				if (nodeStatus[ref.id] !== "done") continue;
+				// Gather all output-port values stored on the node
+				const portValues: Record<string, NodeDataValue> = {};
+				for (const port of node.outputs) {
+					if (node.data && port.id in node.data) {
+						portValues[port.id] = node.data[port.id] as NodeDataValue;
+					}
+				}
+				if (Object.keys(portValues).length > 0) {
+					cached[ref.id] = portValues;
+				}
+			}
+		}
+		await runWorkflow(subgraph, cached);
 	}
 
-	async function runWorkflow(target?: Workflow): Promise<void> {
+	async function runWorkflow(
+		target?: Workflow,
+		cachedOutputs?: Record<string, Record<string, NodeDataValue>>
+	): Promise<void> {
 		if (running) return;
 		running = true;
 		const wfToRun = target ?? $workflow;
@@ -2220,7 +2250,8 @@
 							signal: signal ?? undefined,
 							onChunk
 						})
-				: undefined
+				: undefined,
+			cachedOutputs
 		);
 
 		running = false;
